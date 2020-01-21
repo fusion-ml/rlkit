@@ -1,4 +1,5 @@
-from gym.envs.mujoco import HalfCheetahEnv
+# from gym.envs.mujoco import HalfCheetahEnv
+
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
@@ -12,8 +13,10 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
 def experiment(variant):
-    expl_env = NormalizedBoxEnv(HalfCheetahEnv())
-    eval_env = NormalizedBoxEnv(HalfCheetahEnv())
+    env = gym.make('CartPole-v0')
+    eval_env = gym.make('CartPole-v0')
+    expl_env = NormalizedBoxEnv(env)
+    eval_env = NormalizedBoxEnv(eval_env)
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
 

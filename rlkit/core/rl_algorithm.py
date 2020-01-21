@@ -68,12 +68,20 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
     def _get_snapshot(self):
         snapshot = {}
         for k, v in self.trainer.get_snapshot().items():
+            if k == 'env':
+                continue
             snapshot['trainer/' + k] = v
         for k, v in self.expl_data_collector.get_snapshot().items():
+            if k == 'env':
+                continue
             snapshot['exploration/' + k] = v
         for k, v in self.eval_data_collector.get_snapshot().items():
+            if k == 'env':
+                continue
             snapshot['evaluation/' + k] = v
         for k, v in self.replay_buffer.get_snapshot().items():
+            if k == 'env':
+                continue
             snapshot['replay_buffer/' + k] = v
         return snapshot
 
