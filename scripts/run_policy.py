@@ -7,6 +7,7 @@ from rlkit.core import logger
 import sys
 import os
 from ipdb import set_trace as db
+from tqdm import trange
 import pickle as p
 sys.path.append('../TokamakModels4RL')
 from gym_envs.generic.SISO_Feedback_SimpleConfinement import Scenario
@@ -25,8 +26,7 @@ def simulate_policy(args):
     if args.gpu:
         set_gpu_mode(True)
         policy.cuda()
-    while True:
-        db()
+    for _ in trange(2000):
         filename = str(uuid.uuid4()) + '.pkl'
         path = rollout(
             env,

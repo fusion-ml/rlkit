@@ -26,6 +26,7 @@ sys.path.append('../TokamakModels4RL')
 from gym_envs.generic.SISO_Feedback_SimpleConfinement import Scenario
 
 
+
 def experiment(variant):
     # env = gym.make('MountainCarContinuous-v0')
     # eval_env = gym.make('MountainCarContinuous-v0')
@@ -131,6 +132,6 @@ if __name__ == "__main__":
         replay_buffer_size=int(1E6),
     )
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    setup_logger('tf3_siso_simple', variant=variant)
+    setup_logger('td3_siso_simple', variant=variant)
     # setup_logger('td3_mountaincar', variant=variant)
     experiment(variant)
