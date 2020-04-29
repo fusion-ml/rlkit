@@ -6,7 +6,8 @@ a bit noisy from one epoch to the next (occasionally dips dow to ~2000).
 
 Note that one epoch = 5k steps, so 200 epochs = 1 million steps.
 """
-from gym.envs.mujoco import HalfCheetahEnv
+import gym
+# from gym.envs.mujoco import HalfCheetahEnv
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
@@ -22,8 +23,12 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
 def experiment(variant):
-    expl_env = NormalizedBoxEnv(HalfCheetahEnv())
-    eval_env = NormalizedBoxEnv(HalfCheetahEnv())
+    expl_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
+    eval_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
+    # expl_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
+    # eval_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
+    # expl_env = NormalizedBoxEnv(HalfCheetahEnv())
+    # eval_env = NormalizedBoxEnv(HalfCheetahEnv())
     obs_dim = expl_env.observation_space.low.size
     action_dim = expl_env.action_space.low.size
     qf1 = FlattenMlp(
@@ -107,7 +112,7 @@ if __name__ == "__main__":
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
             min_num_steps_before_training=1000,
-            max_path_length=1000,
+            max_path_length=200,
             batch_size=256,
         ),
         trainer_kwargs=dict(
@@ -122,5 +127,5 @@ if __name__ == "__main__":
         replay_buffer_size=int(1E6),
     )
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    setup_logger('rlkit-post-refactor-td3-half-cheetah', variant=variant)
+    setup_logger('td3-walker', variant=variant)
     experiment(variant)

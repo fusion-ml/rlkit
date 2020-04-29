@@ -44,3 +44,7 @@ class LayerNorm(nn.Module):
         if self.center:
             output = output + self.center_param
         return output
+
+
+def swish(x):
+    return x * torch.sigmoid(x)
