@@ -14,8 +14,8 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
-from reward_functions.mountain_car_continuous import mountain_car_continuous_reward
-from reward_functions.cartpole_swingup import cartpole_swingup_reward_v1
+from custom.mountain_car_continuous import mountain_car_continuous_reward
+from custom.cartpole_swingup import CartPoleSwingUpEnv, cartpole_swingup_reward_v1
 
 ptu.set_gpu_mode(True)
 
@@ -23,8 +23,8 @@ ptu.set_gpu_mode(True)
 def experiment(variant):
     # expl_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
     # eval_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
-    expl_env = NormalizedBoxEnv(gym.make("CartPoleSwingUp-v1"))
-    eval_env = NormalizedBoxEnv(gym.make("CartPoleSwingUp-v1"))
+    expl_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
+    eval_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
     # expl_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     # eval_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     assert variant['policy']['num_particles'] % variant['model']['num_bootstrap'] == 0, "There must be an even number of particles per bootstrap"  # NOQA

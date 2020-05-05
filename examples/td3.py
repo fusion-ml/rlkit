@@ -7,6 +7,7 @@ a bit noisy from one epoch to the next (occasionally dips dow to ~2000).
 Note that one epoch = 5k steps, so 200 epochs = 1 million steps.
 """
 import gym
+import gym_cartpole_swingup
 # from gym.envs.mujoco import HalfCheetahEnv
 
 import rlkit.torch.pytorch_util as ptu
@@ -20,11 +21,14 @@ from rlkit.samplers.data_collector import MdpPathCollector
 from rlkit.torch.networks import FlattenMlp, TanhMlpPolicy
 from rlkit.torch.td3.td3 import TD3Trainer
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from custom.cartpole_swingup import CartPoleSwingUpEnv
 
 
 def experiment(variant):
-    expl_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
-    eval_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
+    expl_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
+    eval_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
+    # expl_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
+    # eval_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
     # expl_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     # eval_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     # expl_env = NormalizedBoxEnv(HalfCheetahEnv())
@@ -127,5 +131,5 @@ if __name__ == "__main__":
         replay_buffer_size=int(1E6),
     )
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
-    setup_logger('td3-walker', variant=variant)
+    setup_logger('td3-cartpole-swingup', variant=variant)
     experiment(variant)
