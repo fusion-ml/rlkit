@@ -1,5 +1,4 @@
 import torch
-from ipdb import set_trace as db
 
 GOAL_POSITION = 0.45
 GOAL_VELOCITY = 0.
