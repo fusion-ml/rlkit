@@ -5,6 +5,7 @@ from Chua et al (2018).
 """
 import sys
 import gym
+import gym_cartpole_swingup
 
 import rlkit.torch.pytorch_util as ptu
 from rlkit.torch.PETS import Model, MPCPolicy, PETSTrainer
