@@ -60,6 +60,9 @@ class CartPoleSwingUpEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
+    def step(self, action):
+        return self._step(action)
+
     def _step(self, action):
         # Valid action
         action = np.clip(action, -1.0, 1.0)[0]
@@ -106,6 +109,9 @@ class CartPoleSwingUpEnv(gym.Env):
         x, x_dot, theta, theta_dot = self.state
         obs = np.array([x,x_dot,np.cos(theta),np.sin(theta),theta_dot])
         return obs
+
+    def reset(self):
+        return self._reset()
 
     def _render(self, mode='human', close=False):
         if close:
