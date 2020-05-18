@@ -37,6 +37,7 @@ def experiment(variant):
                 action_dim=action_dim,
                 num_bootstrap=variant['model']['num_bootstrap'],
                 rew_function=cartpole_swingup_reward_v1,
+                env=expl_env,
                 # rew_function=mountain_car_continuous_reward  # for now
                 )
     policy = MPCPolicy(

@@ -10,7 +10,7 @@ from rlkit.torch.modules import swish
 
 
 class Model(nn.Module):
-    def __init__(self, hidden_sizes, obs_dim, action_dim, num_bootstrap, rew_function=None):
+    def __init__(self, hidden_sizes, obs_dim, action_dim, num_bootstrap, rew_function=None, env=None):
         '''
         Usage:
         model = Model(...)
@@ -18,11 +18,19 @@ class Model(nn.Module):
         next_obs = model(obs, action)
         trajectory = model.unroll(obs, action_sequence)
 
+        Note:
+        only pass in env if you want to denormalize state/actions before reward function in rollouts
+
         TODO: handle the different PETS sampling strategies.
         '''
         super().__init__()
         self.rew_function = rew_function
         self.predict_reward = self.rew_function is None
+        self.env = env
+        if self.env is not None:
+            self.lb = torch_ify(self.env._wrapped_env.action_space.low)
+            self.ub = torch_ify(self.env._wrapped_env.action_space.high)
+
         self.obs_dim = obs_dim
         self.action_dim = action_dim
         self.input_size = obs_dim + action_dim
@@ -62,10 +70,19 @@ class Model(nn.Module):
         next_obs = mean + torch.randn_like(mean) * var.sqrt()
 
         if not self.predict_reward:
+            if self.env:
+                action = self.denormalize_action(action)
             reward = self.rew_function(obs, action, next_obs)
         if return_net_outputs:
             return mean, logvar, reward
         return next_obs, reward
+
+    def denormalize_action(self, action):
+        assert (torch.abs(action) <= 1).all()
+        scaled_action = self.lb + (action + 1.) * 0.5 * (self.ub - self.lb)
+        # scaled_action = torch.clamp(scaled_action, self.lb, self.ub)
+        return scaled_action
+
 
     def unroll(self, obs, action_sequence, sampling_strategy):
         '''
