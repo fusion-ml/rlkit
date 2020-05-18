@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 from rlkit.policies.base import Policy
-from rlkit.torch.PETS.optimizer import CEMOptimizer
+from rlkit.torch.PETS.optimizer import CEMOptimizer, RSOptimizer
 from rlkit.torch.core import np_ify
 
 
@@ -25,9 +25,11 @@ class MPCPolicy(Policy):
             cem_popsize,
             cem_num_elites,
             sampling_strategy,
+            optimizer='CEM',
     ):
         super().__init__()
         assert sampling_strategy in ('TS1', 'TSinf'), "Sampling Strategy must be TS1 or TSinf"
+        assert optimizer in ('CEM', 'RS'), "Only CEM and RS optimizers supported"
         self.model = model
         self.obs_dim = obs_dim
         self.action_dim = action_dim
@@ -36,7 +38,8 @@ class MPCPolicy(Policy):
         # assuming normalized environment
         self.ac_ub = 1
         self.ac_lb = -1
-        self.optimizer = CEMOptimizer(
+        if optimizer == 'CEM':
+            self.optimizer = CEMOptimizer(
                 sol_dim,
                 cem_iters,
                 cem_popsize,
@@ -44,6 +47,15 @@ class MPCPolicy(Policy):
                 self._cost_function,
                 upper_bound=self.ac_ub,
                 lower_bound=self.ac_lb)
+        elif optimizer == 'RS':
+            popsize = cem_popsize * cem_iters
+            self.optimizer = RSOptimizer(
+                sol_dim,
+                self._cost_function,
+                popsize,
+                upper_bound=self.ac_ub,
+                lower_bound=self.ac_lb)
+
         self.cem_horizon = cem_horizon
         # 16 here comes from torch PETS implementation, unsure why
         self.cem_init_var = np.tile(np.square(self.ac_ub - self.ac_lb) / 16, [self.cem_horizon * self.action_dim])

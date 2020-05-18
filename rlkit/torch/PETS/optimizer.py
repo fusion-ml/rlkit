@@ -79,3 +79,18 @@ class CEMOptimizer(Optimizer):
             t += 1
 
         return mean
+
+class RSOptimizer(Optimizer):
+    def __init__(self, sol_dim, cost_function, popsize, upper_bound, lower_bound):
+        self.sol_dim, self.popsize, self.ub, self.lb = sol_dim, popsize, upper_bound, lower_bound
+        self.cost_function = cost_function
+
+    def obtain_solution(self, *args):
+        samples = np.random.uniform(self.lb, self.ub, [self.popsize, self.sol_dim])
+        costs = self.cost_function(samples)
+        return samples[np.argmin(costs), :]
+
+
+    def reset(self):
+        pass
+
