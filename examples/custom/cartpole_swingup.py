@@ -17,11 +17,13 @@ from gym.utils import seeding
 import numpy as np
 
 logger = logging.getLogger(__name__)
+X_THRESHOLD = 2.4
+
 
 class CartPoleSwingUpEnv(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
-        'video.frames_per_second' : 50
+        'video.frames_per_second': 50
     }
 
     def __init__(self):
@@ -40,7 +42,7 @@ class CartPoleSwingUpEnv(gym.Env):
 
         # Angle at which to fail the episode
         self.theta_threshold_radians = 12 * 2 * math.pi / 360
-        self.x_threshold = 2.4
+        # self.x_threshold = 2.4
 
         high = np.array([
             np.finfo(np.float32).max,
@@ -84,7 +86,7 @@ class CartPoleSwingUpEnv(gym.Env):
         self.state = (x,x_dot,theta,theta_dot)
 
         done = False
-        if  x < -self.x_threshold or x > self.x_threshold:
+        if  x < -X_THRESHOLD or x > X_THRESHOLD:
           done = True
 
         self.t += 1
@@ -93,7 +95,7 @@ class CartPoleSwingUpEnv(gym.Env):
           done = True
 
         reward_theta = (np.cos(theta)+1.0)/2.0
-        reward_x = np.cos((x/self.x_threshold)*(np.pi/2.0))
+        reward_x = np.cos((x/X_THRESHOLD)*(np.pi/2.0))
 
         reward = reward_theta*reward_x
 
@@ -179,8 +181,8 @@ class CartPoleSwingUpEnv(gym.Env):
             self.viewer.add_geom(self.wheel_l)
             self.viewer.add_geom(self.wheel_r)
 
-            self.track = rendering.Line((screen_width/2 - self.x_threshold*scale,carty - cartheight/2 - cartheight/4),
-              (screen_width/2 + self.x_threshold*scale,carty - cartheight/2 - cartheight/4))
+            self.track = rendering.Line((screen_width/2 - X_THRESHOLD*scale,carty - cartheight/2 - cartheight/4),
+              (screen_width/2 + X_THRESHOLD*scale,carty - cartheight/2 - cartheight/4))
             self.track.set_color(0,0,0)
             self.viewer.add_geom(self.track)
 
@@ -196,4 +198,11 @@ class CartPoleSwingUpEnv(gym.Env):
 
 @torch.no_grad()
 def cartpole_swingup_reward_v1(state, action, next_state):
-    return (1 + next_state[..., 2]) / 2
+    x = next_state[..., 0]
+    theta = next_state[..., 2]
+    reward_theta = (torch.cos(theta)+1.0)/2.0
+    reward_x = torch.cos((x/X_THRESHOLD)*(np.pi/2.0))
+
+    reward = reward_theta*reward_x
+    return reward
+    # return (1 + next_state[..., 2]) / 2
