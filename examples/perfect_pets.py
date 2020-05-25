@@ -64,8 +64,9 @@ class CheatModel():
             batch_rews = []
             bobs = obs[bidx]
             self.env.reset()
-            self.env.state = np.asarray([bobs[0], bobs[1],
-                                         np.arccos(bobs[2]), bobs[4]])
+            self.env._wrapped_env.state = np.asarray([
+                bobs[0], bobs[1], np.arccos(bobs[2]), bobs[4]
+            ])
             for aidx in range(actions.shape[1]):
                 nxt, rew, done, _ = self.env.step(actions[bidx, aidx])
                 batch_nxts.append(nxt)
@@ -120,6 +121,8 @@ def experiment(variant):
             cem_popsize=variant['policy']['cem_popsize'],
             cem_num_elites=variant['policy']['cem_num_elites'],
             sampling_strategy=variant['policy']['sampling_strategy'],
+            optimizer=variant['policy']['optimizer'],
+            opt_freq=variant['policy']['opt_freq'],
             )
     trainer = MockTrainer()
     eval_path_collector = MdpPathCollector(
@@ -152,12 +155,13 @@ if __name__ == '__main__':
     variant = dict(
             policy=dict(
                 num_particles=1,
-                cem_horizon=10,
-                cem_iters=1,
-                cem_popsize=500,
-                cem_num_elites=1,
+                cem_horizon=25,
+                cem_iters=10,
+                cem_popsize=1000,
+                cem_num_elites=50,
                 sampling_strategy='TS1',
-                optimizer='RS',
+                optimizer='CEM',
+                opt_freq=1,
             ),
             model=dict(
                 num_bootstrap=1,
@@ -166,10 +170,10 @@ if __name__ == '__main__':
             replay_buffer_size=int(1e7),
             algorithm_kwargs=dict(
                 num_epochs=3000,
-                num_eval_steps_per_epoch=400,
-                num_trains_per_train_loop=2500,
-                num_expl_steps_per_train_loop=1000,
-                min_num_steps_before_training=1000,
+                num_eval_steps_per_epoch=200,
+                num_trains_per_train_loop=0,
+                num_expl_steps_per_train_loop=10,
+                min_num_steps_before_training=0,
                 max_path_length=200,
                 batch_size=256,
             ),
@@ -177,4 +181,5 @@ if __name__ == '__main__':
     )
 
     setup_logger(name, variant=variant)
+    # import pudb; pudb.set_trace()
     experiment(variant)

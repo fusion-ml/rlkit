@@ -1,3 +1,4 @@
+from collections import deque
 import numpy as np
 import torch
 
@@ -26,6 +27,7 @@ class MPCPolicy(Policy):
             cem_num_elites,
             sampling_strategy,
             optimizer='CEM',
+            opt_freq=1,
     ):
         super().__init__()
         assert sampling_strategy in ('TS1', 'TSinf'), "Sampling Strategy must be TS1 or TSinf"
@@ -60,14 +62,23 @@ class MPCPolicy(Policy):
         # 16 here comes from torch PETS implementation, unsure why
         self.cem_init_var = np.tile(np.square(self.ac_ub - self.ac_lb) / 16, [self.cem_horizon * self.action_dim])
         self.current_obs = None
-        self.prev_sol = None
+        self.prev_sol = np.tile(
+                (self.ac_lb + self.ac_ub)/ 2,
+                [self.cem_horizon],
+        )
         self.num_particles = num_particles
         self.sampling_strategy = sampling_strategy
+        self.action_buff = deque()
+        self.opt_freq = opt_freq
 
     def reset(self):
         self.optimizer.reset()
         self.current_obs = None
-        self.prev_sol = None
+        self.prev_sol = np.tile(
+                (self.ac_lb + self.ac_ub)/ 2,
+                [self.cem_horizon],
+        )
+        self.action_buff = deque()
 
     def sample_action(self):
         return np.random.uniform(low=self.ac_lb, high=self.ac_ub, size=self.action_dim)
@@ -75,13 +86,20 @@ class MPCPolicy(Policy):
     def get_action(self, obs_np):
         if not self.model.trained_at_all:
             return self.sample_action(), {}
+        if len(self.action_buff) > 0:
+            return np.asarray([self.action_buff.popleft()]), {}
         self.current_obs = obs_np
-        init_mean = np.zeros(self.cem_horizon * self.action_dim)
-        if self.prev_sol is not None:
-            init_mean[:(self.cem_horizon - 1) * self.action_dim] = self.prev_sol[self.action_dim:]
-        new_sol = self.optimizer.obtain_solution(init_mean, self.cem_init_var)
-        self.prev_sol = new_sol
-        return new_sol[:self.action_dim], {}
+        new_sol = self.optimizer.obtain_solution(
+                self.prev_sol,
+                self.cem_init_var,
+        )
+        self.prev_sol = np.concatenate([
+                np.copy(new_sol)[self.action_dim * self.opt_freq:],
+                np.zeros(self.opt_freq),
+        ])
+        for a in new_sol[1:self.opt_freq]:
+            self.action_buff.append(a)
+        return np.asarray([new_sol[0]]), {}
 
     def get_actions(self, obs_np, deterministic=False):
         # TODO: figure out how this is used
