@@ -27,9 +27,11 @@ class CheatModel():
     def __init__(
             self,
             env,
+            env_name,
             rew_function=None,
     ):
         self.env = env
+        self.env_name = env_name
         self.rew_function = rew_function
         self.lb = torch_ify(self.env._wrapped_env.action_space.low)
         self.ub = torch_ify(self.env._wrapped_env.action_space.high)
@@ -43,8 +45,7 @@ class CheatModel():
             network_idx=None,
             return_net_outputs=False,
     ):
-        state = np.asarray([obs[0], obs[1], np.arccos(obs[2]), obs[4]])
-        self.env._wrapped_env.state = state
+        self._set_env_state(obs)
         nxt, rew, done, _ = self.env.step(action)
         return nxt, rew
 
@@ -64,9 +65,7 @@ class CheatModel():
             batch_rews = []
             bobs = obs[bidx]
             self.env.reset()
-            self.env._wrapped_env.state = np.asarray([
-                bobs[0], bobs[1], np.arccos(bobs[2]), bobs[4]
-            ])
+            self._set_env_state(bobs)
             for aidx in range(actions.shape[1]):
                 nxt, rew, done, _ = self.env.step(actions[bidx, aidx])
                 batch_nxts.append(nxt)
@@ -77,6 +76,13 @@ class CheatModel():
 
     def bound_loss(self):
         return 0
+
+    def _set_env_state(self, obs):
+        if self.env_name == 'CartPoleSwingUp':
+            state = np.asarray([obs[0], obs[1], np.arccos(obs[2]), obs[4]])
+            self.env._wrapped_env.state = state
+        else:
+            self.env._wrapped_env.env.state = obs
 
 
 class MockTrainer(TorchTrainer):
@@ -98,11 +104,17 @@ class MockTrainer(TorchTrainer):
         pass
 
 def experiment(variant):
+    env_name = 'MountainCarContinuous-v0'
+    if env_name == 'CartPoleSwingUp':
+        expl_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
+        eval_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
+        model_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
+    else:
+        expl_env = NormalizedBoxEnv(gym.make(env_name))
+        eval_env = NormalizedBoxEnv(gym.make(env_name))
+        model_env = NormalizedBoxEnv(gym.make(env_name))
     # expl_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
     # eval_env = NormalizedBoxEnv(gym.make('BipedalWalker-v3'))
-    expl_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
-    eval_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
-    model_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
     # expl_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     # eval_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     assert variant['policy']['num_particles'] % variant['model']['num_bootstrap'] == 0, "There must be an even number of particles per bootstrap"  # NOQA
@@ -110,7 +122,7 @@ def experiment(variant):
     obs_dim = expl_env.observation_space.low.size
     action_dim = expl_env.action_space.low.size
 
-    model = CheatModel(model_env)
+    model = CheatModel(model_env, env_name)
     policy = MPCPolicy(
             model=model,
             obs_dim=obs_dim,
@@ -156,11 +168,11 @@ if __name__ == '__main__':
             policy=dict(
                 num_particles=1,
                 cem_horizon=25,
-                cem_iters=10,
+                cem_iters=1,
                 cem_popsize=1000,
-                cem_num_elites=50,
+                cem_num_elites=1,
                 sampling_strategy='TS1',
-                optimizer='CEM',
+                optimizer='RS',
                 opt_freq=1,
             ),
             model=dict(
