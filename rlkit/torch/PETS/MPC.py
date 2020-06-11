@@ -28,6 +28,7 @@ class MPCPolicy(Policy):
             sampling_strategy,
             optimizer='CEM',
             opt_freq=1,
+            cem_alpha=0.1,
     ):
         super().__init__()
         assert sampling_strategy in ('TS1', 'TSinf'), "Sampling Strategy must be TS1 or TSinf"
@@ -48,7 +49,8 @@ class MPCPolicy(Policy):
                 cem_num_elites,
                 self._cost_function,
                 upper_bound=self.ac_ub,
-                lower_bound=self.ac_lb)
+                lower_bound=self.ac_lb,
+                alpha=cem_alpha)
         elif optimizer == 'RS':
             popsize = cem_popsize * cem_iters
             self.optimizer = RSOptimizer(

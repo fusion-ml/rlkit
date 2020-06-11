@@ -81,6 +81,8 @@ class CheatModel():
         if self.env_name == 'CartPoleSwingUp':
             state = np.asarray([obs[0], obs[1], np.arccos(obs[2]), obs[4]])
             self.env._wrapped_env.state = state
+        elif self.env_name == 'Cartpole':
+            self.env._wrapped_env.set_state(obs[:2], obs[2:])
         else:
             self.env._wrapped_env.env.state = obs
 
@@ -104,11 +106,16 @@ class MockTrainer(TorchTrainer):
         pass
 
 def experiment(variant):
-    env_name = 'MountainCarContinuous-v0'
+    env_name = 'Cartpole'
     if env_name == 'CartPoleSwingUp':
         expl_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
         eval_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
         model_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
+    elif env_name == 'Cartpole':
+        from custom.mjcartpole import CartpoleEnv
+        expl_env = NormalizedBoxEnv(CartpoleEnv())
+        eval_env = NormalizedBoxEnv(CartpoleEnv())
+        model_env = NormalizedBoxEnv(CartpoleEnv())
     else:
         expl_env = NormalizedBoxEnv(gym.make(env_name))
         eval_env = NormalizedBoxEnv(gym.make(env_name))
@@ -135,6 +142,7 @@ def experiment(variant):
             sampling_strategy=variant['policy']['sampling_strategy'],
             optimizer=variant['policy']['optimizer'],
             opt_freq=variant['policy']['opt_freq'],
+            cem_alpha=variant['policy']['cem_alpha'],
             )
     trainer = MockTrainer()
     eval_path_collector = MdpPathCollector(
@@ -168,12 +176,13 @@ if __name__ == '__main__':
             policy=dict(
                 num_particles=1,
                 cem_horizon=25,
-                cem_iters=1,
-                cem_popsize=1000,
-                cem_num_elites=1,
+                cem_iters=5,
+                cem_popsize=400,
+                cem_num_elites=40,
                 sampling_strategy='TS1',
-                optimizer='RS',
+                optimizer='CEM',
                 opt_freq=1,
+                cem_alpha=0.1
             ),
             model=dict(
                 num_bootstrap=1,
