@@ -12,7 +12,7 @@ class CartpoleEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def __init__(self):
         utils.EzPickle.__init__(self)
-        dir_path = '/usr0/home/ichar/Documents/projects/rlkit/examples/custom'
+        dir_path = os.getenv("RLKIT_PATH") + 'examples/custom/'
         mujoco_env.MujocoEnv.__init__(self, '%s/assets/cartpole.xml' %dir_path, 2)
 
     def step(self, a):
