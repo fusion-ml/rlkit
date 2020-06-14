@@ -5,6 +5,7 @@ import torch
 from rlkit.policies.base import Policy
 from rlkit.torch.PETS.optimizer import CEMOptimizer, RSOptimizer
 from rlkit.torch.core import np_ify
+from ipdb import set_trace as db
 
 
 class MPCPolicy(Policy):

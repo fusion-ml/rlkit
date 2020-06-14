@@ -17,7 +17,7 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from custom.mountain_car_continuous import mountain_car_continuous_reward
 from custom.cartpole_swingup import CartPoleSwingUpEnv, cartpole_swingup_reward_v1
 
-# ptu.set_gpu_mode(True)
+ptu.set_gpu_mode(True)
 
 
 def experiment(variant):
