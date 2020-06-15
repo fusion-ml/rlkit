@@ -15,7 +15,7 @@ class PETSTrainer(TorchTrainer):
             policy,
             model,
             lr=1e-3,
-            optimizer_class=optim.Adam,
+            optimizer_class=optim.AdamW,
 
             # discount=0.99,
             reward_scale=1.0,
@@ -36,7 +36,8 @@ class PETSTrainer(TorchTrainer):
         self.model_criterion = gaussian_log_loss
         self.model_optimizer = optimizer_class(
                 self.model.parameters(),
-                lr=lr
+                lr=lr,
+                weight_decay=0.00025,
         )
         # self.discount = discount
         self.reward_scale = reward_scale

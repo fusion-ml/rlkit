@@ -60,4 +60,4 @@ def get_cp_reward(curr_obs, action, next_obs):
     cost_lscale = CartpoleEnv.PENDULUM_LENGTH
     tgt = torch.Tensor([0.0, CartpoleEnv.PENDULUM_LENGTH]).to(device)
     sqrd = (ee_poss - tgt) ** 2
-    return torch.exp(-torch.sum(sqrd, 1) / (cost_lscale ** 2))
+    return torch.exp(-torch.sum(sqrd, 1) / (cost_lscale ** 2)) - torch.sum(action ** 2, 1) * 0.01
