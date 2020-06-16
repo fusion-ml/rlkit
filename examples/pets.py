@@ -26,8 +26,8 @@ def experiment(variant):
     # expl_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
     # eval_env = NormalizedBoxEnv(CartPoleSwingUpEnv())
     from custom.mjcartpole import CartpoleEnv, get_cp_reward # This import will fail if you don't have Mujoco.
-    expl_env = NormalizedBoxEnv(CartpoleEnv())
-    eval_env = NormalizedBoxEnv(CartpoleEnv())
+    expl_env = CartpoleEnv()
+    eval_env = CartpoleEnv()
     # expl_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     # eval_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     assert variant['policy']['num_particles'] % variant['model']['num_bootstrap'] == 0, "There must be an even number of particles per bootstrap"  # NOQA
@@ -41,7 +41,7 @@ def experiment(variant):
                 action_dim=action_dim,
                 num_bootstrap=variant['model']['num_bootstrap'],
                 rew_function=get_cp_reward,
-                env=expl_env,
+                # env=expl_env,
                 # rew_function=mountain_car_continuous_reward  # for now
                 )
     policy = MPCPolicy(
@@ -105,7 +105,7 @@ if __name__ == '__main__':
             algorithm_kwargs=dict(
                 num_epochs=50,
                 num_eval_steps_per_epoch=200,
-                num_trains_per_train_loop=500,
+                num_trains_per_train_loop=2500,
                 num_expl_steps_per_train_loop=500,
                 min_num_steps_before_training=200,
                 max_path_length=200,
