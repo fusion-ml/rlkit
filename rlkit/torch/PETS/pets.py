@@ -36,7 +36,8 @@ class PETSTrainer(TorchTrainer):
         self.model_criterion = gaussian_log_loss
         self.model_optimizer = optimizer_class(
                 self.model.parameters(),
-                lr=lr
+                lr=lr,
+                # weight_decay=0.00025,
         )
         # self.discount = discount
         self.reward_scale = reward_scale

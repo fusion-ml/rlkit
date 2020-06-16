@@ -5,6 +5,7 @@ import torch
 from rlkit.policies.base import Policy
 from rlkit.torch.PETS.optimizer import CEMOptimizer, RSOptimizer
 from rlkit.torch.core import np_ify
+from ipdb import set_trace as db
 
 
 class MPCPolicy(Policy):
@@ -66,7 +67,7 @@ class MPCPolicy(Policy):
         self.current_obs = None
         self.prev_sol = np.tile(
                 (self.ac_lb + self.ac_ub)/ 2,
-                [self.cem_horizon],
+                [self.cem_horizon * self.action_dim],
         )
         self.num_particles = num_particles
         self.sampling_strategy = sampling_strategy
@@ -78,7 +79,7 @@ class MPCPolicy(Policy):
         self.current_obs = None
         self.prev_sol = np.tile(
                 (self.ac_lb + self.ac_ub)/ 2,
-                [self.cem_horizon],
+                [self.cem_horizon * self.action_dim],
         )
         self.action_buff = deque()
 
@@ -97,7 +98,7 @@ class MPCPolicy(Policy):
         )
         self.prev_sol = np.concatenate([
                 np.copy(new_sol)[self.action_dim * self.opt_freq:],
-                np.zeros(self.opt_freq),
+                np.zeros(self.action_dim * self.opt_freq),
         ])
         for a in new_sol[1:self.opt_freq]:
             self.action_buff.append(a)

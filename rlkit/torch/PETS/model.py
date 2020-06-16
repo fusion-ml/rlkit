@@ -111,7 +111,8 @@ class Model(nn.Module):
             # we just run all networks on all inputs and then do the sampling after
             for network_idx in range(self.num_bootstrap):
                 # rely on the fact that self.forward() is probabilistic and stuff
-                next_obs, reward = self.forward(obs, action_sequence[:, i, :], network_idx)
+                with torch.no_grad():
+                    next_obs, reward = self.forward(obs, action_sequence[:, i, :], network_idx)
                 bs_obs.append(next_obs)
                 bs_rew.append(reward)
             bs_obs = torch.stack(bs_obs)

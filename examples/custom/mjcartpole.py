@@ -13,7 +13,7 @@ class CartpoleEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def __init__(self):
         utils.EzPickle.__init__(self)
-        dir_path = '/usr0/home/ichar/Documents/projects/rlkit/examples/custom'
+        dir_path = os.getenv("RLKIT_PATH") + 'examples/custom/'
         mujoco_env.MujocoEnv.__init__(self, '%s/assets/cartpole.xml' %dir_path, 2)
 
     def step(self, a):
@@ -53,13 +53,12 @@ class CartpoleEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
 @torch.no_grad()
 def get_cp_reward(curr_obs, action, next_obs):
+    device = curr_obs.device
     x0s, thetas = next_obs[:, 0], next_obs[:, 1]
     ee_poss = torch.stack([
         x0s - CartpoleEnv.PENDULUM_LENGTH * torch.sin(thetas),
         -CartpoleEnv.PENDULUM_LENGTH * torch.cos(thetas)], dim=1).to(ptu.device)
     cost_lscale = CartpoleEnv.PENDULUM_LENGTH
-    offset = torch.Tensor([0.0, CartpoleEnv.PENDULUM_LENGTH]).to(ptu.device)
-    sqrd = (ee_poss - offset) ** 2
-    reward = torch.exp(-torch.sum(sqrd, 1) / (cost_lscale ** 2))
-    reward -= 0.01 * torch.sum(action ** 2, 1)
-    return reward
+    tgt = torch.Tensor([0.0, CartpoleEnv.PENDULUM_LENGTH]).to(device)
+    sqrd = (ee_poss - tgt) ** 2
+    return torch.exp(-torch.sum(sqrd, 1) / (cost_lscale ** 2)) - torch.sum(action ** 2, 1) * 0.01
