@@ -105,9 +105,9 @@ if __name__ == '__main__':
             algorithm_kwargs=dict(
                 num_epochs=50,
                 num_eval_steps_per_epoch=200,
-                num_trains_per_train_loop=2500,
+                num_trains_per_train_loop=100000,
                 num_expl_steps_per_train_loop=500,
-                min_num_steps_before_training=200,
+                min_num_steps_before_training=10000,
                 max_path_length=200,
                 batch_size=256,
             ),
