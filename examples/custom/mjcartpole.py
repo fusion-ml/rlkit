@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from gym import utils
 from gym.envs.mujoco import mujoco_env
+import rlkit.torch.pytorch_util as ptu
 
 
 class CartpoleEnv(mujoco_env.MujocoEnv, utils.EzPickle):
@@ -55,7 +56,10 @@ def get_cp_reward(curr_obs, action, next_obs):
     x0s, thetas = next_obs[:, 0], next_obs[:, 1]
     ee_poss = torch.stack([
         x0s - CartpoleEnv.PENDULUM_LENGTH * torch.sin(thetas),
-        -CartpoleEnv.PENDULUM_LENGTH * torch.cos(thetas)], dim=1)
+        -CartpoleEnv.PENDULUM_LENGTH * torch.cos(thetas)], dim=1).to(ptu.device)
     cost_lscale = CartpoleEnv.PENDULUM_LENGTH
-    sqrd = (ee_poss - torch.Tensor([0.0, CartpoleEnv.PENDULUM_LENGTH])) ** 2
-    return torch.exp(-torch.sum(sqrd, 1) / (cost_lscale ** 2))
+    offset = torch.Tensor([0.0, CartpoleEnv.PENDULUM_LENGTH]).to(ptu.device)
+    sqrd = (ee_poss - offset) ** 2
+    reward = torch.exp(-torch.sum(sqrd, 1) / (cost_lscale ** 2))
+    reward -= 0.01 * torch.sum(action ** 2, 1)
+    return reward

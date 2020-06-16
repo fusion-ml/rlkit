@@ -17,7 +17,7 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from custom.mountain_car_continuous import mountain_car_continuous_reward
 from custom.cartpole_swingup import CartPoleSwingUpEnv, cartpole_swingup_reward_v1
 
-# ptu.set_gpu_mode(True)
+ptu.set_gpu_mode(True)
 
 
 def experiment(variant):
@@ -103,11 +103,11 @@ if __name__ == '__main__':
                 opt_freq=1,
             ),
             algorithm_kwargs=dict(
-                num_epochs=50,
+                num_epochs=5,
                 num_eval_steps_per_epoch=200,
-                num_trains_per_train_loop=500,
+                num_trains_per_train_loop=100000,
                 num_expl_steps_per_train_loop=500,
-                min_num_steps_before_training=200,
+                min_num_steps_before_training=10000,
                 max_path_length=200,
                 batch_size=256,
             ),
