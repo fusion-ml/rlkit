@@ -13,8 +13,11 @@ class CartpoleEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def __init__(self):
         utils.EzPickle.__init__(self)
-        dir_path = os.getenv("RLKIT_PATH") + 'examples/custom/'
-        mujoco_env.MujocoEnv.__init__(self, '%s/assets/cartpole.xml' %dir_path, 2)
+        xml_path = os.path.join(
+                os.getenv("RLKIT_PATH"),
+                'examples/custom/assets/cartpole.xml',
+        )
+        mujoco_env.MujocoEnv.__init__(self, xml_path, 2)
 
     def step(self, a):
         self.do_simulation(a, self.frame_skip)
@@ -51,14 +54,24 @@ class CartpoleEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         v.cam.trackbodyid = 0
         v.cam.distance = v.model.stat.extent
 
+def np_get_cp_reward(curr_obs, action, next_obs):
+    x0s, thetas = next_obs[:, 0], next_obs[:, 1]
+    ee_poss = np.hstack([
+        x0s - CartpoleEnv.PENDULUM_LENGTH * np.sin(thetas),
+        -CartpoleEnv.PENDULUM_LENGTH * np.cos(thetas)])
+    cost_lscale = CartpoleEnv.PENDULUM_LENGTH
+    tgt = np.asarray([0.0, CartpoleEnv.PENDULUM_LENGTH]).reshape(1, -1)
+    sqrd = np.square(ee_poss - tgt)
+    return (np.exp(-np.sum(sqrd, axis=1) / (cost_lscale ** 2))
+            - np.sum(action ** 2, axis=1) * 0.01)
+
 @torch.no_grad()
-def get_cp_reward(curr_obs, action, next_obs):
-    device = curr_obs.device
+def torch_get_cp_reward(curr_obs, action, next_obs):
     x0s, thetas = next_obs[:, 0], next_obs[:, 1]
     ee_poss = torch.stack([
         x0s - CartpoleEnv.PENDULUM_LENGTH * torch.sin(thetas),
         -CartpoleEnv.PENDULUM_LENGTH * torch.cos(thetas)], dim=1).to(ptu.device)
     cost_lscale = CartpoleEnv.PENDULUM_LENGTH
-    tgt = torch.Tensor([0.0, CartpoleEnv.PENDULUM_LENGTH]).to(device)
+    tgt = torch.Tensor([0.0, CartpoleEnv.PENDULUM_LENGTH]).to(ptu.device)
     sqrd = (ee_poss - tgt) ** 2
     return torch.exp(-torch.sum(sqrd, 1) / (cost_lscale ** 2)) - torch.sum(action ** 2, 1) * 0.01

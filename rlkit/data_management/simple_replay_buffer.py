@@ -4,7 +4,6 @@ import numpy as np
 
 from rlkit.data_management.replay_buffer import ReplayBuffer
 
-
 class SimpleReplayBuffer(ReplayBuffer):
 
     def __init__(
@@ -71,6 +70,16 @@ class SimpleReplayBuffer(ReplayBuffer):
             assert key not in batch.keys()
             batch[key] = self._env_infos[key][indices]
         return batch
+
+    def get_transition_data(self, data_limit=None):
+        if data_limit is None:
+            data_limit = self._observations.shape[0]
+        low_idx = max([0, self._top - data_limit])
+        states = self._observations[low_idx:self._top]
+        actions = self._actions[low_idx:self._top]
+        nxts = self._next_obs[low_idx:self._top]
+        data_x = np.hstack([states, actions])
+        return data_x, nxts
 
     def rebuild_env_info_dict(self, idx):
         return {

@@ -7,6 +7,7 @@ import numpy as np
 from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.core import torch_ify
 from rlkit.torch.modules import swish
+import rlkit.torch.pytorch_util as ptu
 
 
 class Model(nn.Module):
@@ -44,8 +45,12 @@ class Model(nn.Module):
         for i in range(num_bootstrap):
             # TODO: figure out what the network architecture should be
             self._nets.append(FlattenMlp(hidden_sizes, self.output_dim, self.input_size, hidden_activation=swish))
-        self.max_logvar = nn.Parameter(torch.ones(1, self.obs_dim, dtype=torch.float32) / 2.0)
-        self.min_logvar = nn.Parameter(-torch.ones(1, self.obs_dim, dtype=torch.float32) * 10.0)
+        self.max_logvar = nn.Parameter(
+                torch.ones(1, self.obs_dim, dtype=torch.float32) / 2.0
+        ).to(ptu.device)
+        self.min_logvar = nn.Parameter(
+                -torch.ones(1, self.obs_dim, dtype=torch.float32) * 10.0
+        ).to(ptu.device)
         self.trained_at_all = False
 
     def forward(self, obs, action, network_idx=None, return_net_outputs=False):

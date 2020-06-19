@@ -1,5 +1,6 @@
 import numpy as np
 import itertools
+import torch
 from gym import Env
 from gym.spaces import Box
 from gym.spaces import Discrete
@@ -167,3 +168,83 @@ class NormalizedBoxEnv(ProxyEnv):
     def __str__(self):
         return "Normalized: %s" % self._wrapped_env
 
+
+class ModelEnv(NormalizedBoxEnv):
+    """
+    An environment wrapper for a model.
+    """
+
+    def __init__(
+            self,
+            env,
+            model,
+            reward_func,
+            horizon,
+            reward_scale=1.,
+            obs_mean=None,
+            obs_std=None,
+            replay_buffer=None,
+    ):
+        super(ModelEnv, self).__init__(
+                env,
+                reward_scale,
+                obs_mean,
+                obs_std,
+        )
+        self._model = model
+        self._reward_func = reward_func
+        self._horizon = horizon
+        self._curr_state = None
+        self._replay_buffer = replay_buffer
+        self._network_idx = None
+        self._t = 0
+
+    def reset(self, **kwargs):
+        if self._replay_buffer is None:
+            self._curr_state = self._wrapped_env.reset(**kwargs)
+        else:
+            self._curr_state = \
+                self._replay_buffer.random_batch(1)['observations'].flatten()
+        self._t = 0
+        return self._curr_state
+
+    def estimate_obs_stats(self, obs_batch, override_values=False):
+        if self._obs_mean is not None and not override_values:
+            raise Exception("Observation mean and std already set. To "
+                            "override, set override_values to True.")
+        self._obs_mean = np.mean(obs_batch, axis=0)
+        self._obs_std = np.std(obs_batch, axis=0)
+
+    def _apply_normalize_obs(self, obs):
+        return (obs - self._obs_mean) / (self._obs_std + 1e-8)
+
+    def step(self, action):
+        lb = self._wrapped_env.action_space.low
+        ub = self._wrapped_env.action_space.high
+        scaled_action = lb + (action + 1.) * 0.5 * (ub - lb)
+        scaled_action = np.clip(scaled_action, lb, ub)
+        # Pass into the model.
+        # TODO: There is a really big bottleneck here with transfering
+        # data back and forth between CPU and GPU.
+        with torch.no_grad():
+            next_obs = self._model.forward(
+                    self._curr_state.reshape(1, -1),
+                    scaled_action.reshape(1, -1),
+                    network_idx=self._network_idx,
+            )[0].cpu().numpy()
+        if self._should_normalize:
+            next_obs = self._apply_normalize_obs(next_obs)
+        reward = self._reward_func(
+                self._curr_state.reshape(1, -1),
+                action.reshape(1, -1),
+                next_obs)
+        self._t += 1
+        done = self._t >= self._horizon
+        self._curr_state = next_obs.flatten()
+        return self._curr_state, reward * self._reward_scale, done, {}
+
+    def set_network_idx(self, network_idx):
+        self._network_idx = network_idx
+
+    def __str__(self):
+        return "Normalized: %s" % self._wrapped_env
