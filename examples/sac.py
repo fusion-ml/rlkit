@@ -10,13 +10,16 @@ from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic
 from rlkit.torch.sac.sac import SACTrainer
 from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
+from examples.custom.mjcartpole import CartpoleEnv, np_get_cp_reward
 
 
 def experiment(variant):
-    expl_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
-    eval_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
+    # expl_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
+    # eval_env = NormalizedBoxEnv(gym.make('MountainCarContinuous-v0'))
     # expl_env = NormalizedBoxEnv(HalfCheetahEnv())
     # eval_env = NormalizedBoxEnv(HalfCheetahEnv())
+    eval_env = NormalizedBoxEnv(CartpoleEnv())
+    expl_env = NormalizedBoxEnv(CartpoleEnv())
     obs_dim = expl_env.observation_space.low.size
     action_dim = eval_env.action_space.low.size
 
@@ -91,12 +94,12 @@ if __name__ == "__main__":
         layer_size=256,
         replay_buffer_size=int(1E6),
         algorithm_kwargs=dict(
-            num_epochs=3000,
+            num_epochs=250,
             num_eval_steps_per_epoch=5000,
             num_trains_per_train_loop=1000,
             num_expl_steps_per_train_loop=1000,
             min_num_steps_before_training=1000,
-            max_path_length=1000,
+            max_path_length=200,
             batch_size=256,
         ),
         trainer_kwargs=dict(
@@ -109,6 +112,6 @@ if __name__ == "__main__":
             use_automatic_entropy_tuning=True,
         ),
     )
-    setup_logger('name-of-experiment', variant=variant)
+    setup_logger('sac-cp-baseline', variant=variant)
     # ptu.set_gpu_mode(True)  # optionally set the GPU (default=False)
     experiment(variant)

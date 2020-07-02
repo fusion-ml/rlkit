@@ -9,56 +9,58 @@ import gym
 import torch
 import numpy as np
 
+from rlkit.core.dyna_rl_algorithm.batch_dyna_algorithm import BatchDynaAlgorithm
+from rlkit.core.dyna_rl_algorithm.online_dyna_algorithm import OnlineDynaAlgorithm
 import rlkit.torch.pytorch_util as ptu
 from rlkit.torch.PETS import Model, MPCPolicy, PETSTrainer
 from rlkit.envs.wrappers import NormalizedBoxEnv, ModelEnv
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.launchers.launcher_util import setup_logger
 from rlkit.samplers.data_collector import MdpPathCollector
-from rlkit.torch.dyna_rl_algorithm import TorchDynaRLAlgorithm
+from rlkit.samplers.data_collector.step_collector import MdpStepCollector
 from rlkit.torch.dyn_model_trainer import DynModelTrainer
 from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.sac.policies import TanhGaussianPolicy, MakeDeterministic
 from rlkit.torch.sac.sac import SACTrainer
 
+DEFAULT_EXPL_STEPS = 200
 DEFAULT_VARIANT = dict(
     run_id='',
     seed=0,
     cuda_device='',
     environment='Cartpole',
-    dyna_variant='standard', # Can also be mbpo.
+    dyna_variant='standard', # Options are standard or mbpo
+    training_mode='batch', # Options are batch and online
     algorithm='SAC',
     agent_layer_size=256,
     replay_buffer_size=int(1E6),
     imaginary_replay_size=int(5E5),
+    algorithm_kwargs=dict(
+        num_epochs=100,
+        num_eval_steps_per_epoch=1000,
+        num_expl_steps_per_loop=DEFAULT_EXPL_STEPS,
+        num_model_steps_per_loop=50 * DEFAULT_EXPL_STEPS,
+        num_model_trains_per_loop=1000,
+        num_policy_trains_per_loop=1000,
+        min_num_steps_before_training=10000,
+        max_path_length=200,
+        max_model_path_length=200,
+        batch_size=1024,
+        silent_inner_loop=False,
+    ),
     # algorithm_kwargs=dict(
-    #     num_epochs=50,
-    #     num_eval_steps_per_epoch=1000,
-    #     num_expl_steps_per_loop=1000,
-    #     num_model_steps_per_loop=1000,
-    #     num_model_trains_per_loop=200,
-    #     num_policy_trains_per_loop=200,
-    #     num_policy_loops_per_epoch=100,
-    #     min_num_steps_before_training=10000,
+    #     num_epochs=5,
+    #     num_eval_steps_per_epoch=10,
+    #     num_expl_steps_per_loop=10,
+    #     num_model_steps_per_loop=10,
+    #     num_model_trains_per_loop=10,
+    #     num_policy_trains_per_loop=20,
+    #     min_num_steps_before_training=100,
     #     max_path_length=200,
     #     max_model_path_length=200,
     #     batch_size=1024,
     #     silent_inner_loop=False,
     # ),
-    algorithm_kwargs=dict(
-        num_epochs=5,
-        num_eval_steps_per_epoch=200,
-        num_expl_steps_per_loop=5,
-        num_model_steps_per_loop=5,
-        num_model_trains_per_loop=1,
-        num_policy_trains_per_loop=5,
-        num_policy_loops_per_epoch=500,
-        min_num_steps_before_training=5,
-        max_path_length=200,
-        max_model_path_length=200,
-        batch_size=256,
-        silent_inner_loop=False,
-    ),
     agent_trainer_kwargs=dict(
         discount=0.99,
         soft_target_tau=5e-3,
@@ -92,9 +94,12 @@ def launch_variant(variant):
     # Get environment.
     if variant['environment'] == 'Cartpole':
         from examples.custom.mjcartpole import CartpoleEnv, np_get_cp_reward
-        expl_env = NormalizedBoxEnv(CartpoleEnv())
-        eval_env = NormalizedBoxEnv(CartpoleEnv())
+        expl_env = CartpoleEnv()
+        eval_env = CartpoleEnv()
         true_env = CartpoleEnv()
+        # expl_env = CartpoleEnv()
+        # eval_env = CartpoleEnv()
+        # true_env = CartpoleEnv()
         reward_func = np_get_cp_reward
         horizon = 200
     else:
@@ -169,24 +174,40 @@ def launch_variant(variant):
         eval_env,
         eval_policy,
     )
-    expl_path_collector = MdpPathCollector(
-        expl_env,
-        policy,
-    )
     model_path_collector = MdpPathCollector(
         model_env,
         policy,
     )
+    dummy_model_collector = MdpPathCollector(
+        true_env,
+        policy,
+    )
     # Create algorithm.
-    algo = TorchDynaRLAlgorithm(
+    if variant['training_mode'] == 'batch':
+        expl_collector = MdpPathCollector(
+            expl_env,
+            policy,
+        )
+        DynaClass = BatchDynaAlgorithm
+    elif variant['training_mode'] == 'online':
+        expl_collector = MdpStepCollector(
+            expl_env,
+            policy,
+        )
+        DynaClass = OnlineDynaAlgorithm
+    else:
+        raise ValueError('Unknonw training mode: %s ' % variant['training_mode'])
+    algo = DynaClass(
         agent_trainer,
         model_trainer,
         expl_env,
         eval_env,
-        model_env,
-        expl_path_collector,
+        # model_env,
+        true_env,
+        expl_collector,
         eval_path_collector,
-        model_path_collector,
+        dummy_model_collector,
+        # model_path_collector,
         replay_buffer,
         imaginary_replay_buffer,
         **variant['algorithm_kwargs'],
