@@ -84,6 +84,10 @@ class Model(nn.Module):
         return scaled_action
 
 
+    def save_nets(self, save_path):
+        torch.save(self._nets, save_path)
+
+
     def unroll(self, obs, action_sequence, sampling_strategy):
         '''
         obs: batch_size * obs_dim (Tensor)

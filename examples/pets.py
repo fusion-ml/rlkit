@@ -103,7 +103,7 @@ if __name__ == '__main__':
                 opt_freq=1,
             ),
             algorithm_kwargs=dict(
-                num_epochs=50,
+                num_epochs=5,
                 num_eval_steps_per_epoch=200,
                 num_trains_per_train_loop=100000,
                 num_expl_steps_per_train_loop=500,
