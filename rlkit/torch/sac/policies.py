@@ -7,9 +7,15 @@ from rlkit.torch.core import eval_np
 from rlkit.torch.distributions import TanhNormal
 from rlkit.torch.networks import Mlp
 
-
 LOG_SIG_MAX = 2
-LOG_SIG_MIN = -20
+LOG_SIG_MIN = -5
+MEAN_MIN = -9.0
+MEAN_MAX = 9.0
+
+def atanh(x):
+    one_plus_x = (1 + x).clamp(min=1e-6)
+    one_minus_x = (1 - x).clamp(min=1e-6)
+    return 0.5*torch.log(one_plus_x/ one_minus_x)
 
 
 class TanhGaussianPolicy(Mlp, ExplorationPolicy):
@@ -65,6 +71,25 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
 
     def get_actions(self, obs_np, deterministic=False):
         return eval_np(self, obs_np, deterministic=deterministic)[0]
+
+    def log_prob(self, obs, actions):
+        raw_actions = atanh(actions)
+        h = obs
+        for i, fc in enumerate(self.fcs):
+            h = self.hidden_activation(fc(h))
+        mean = self.last_fc(h)
+        mean = torch.clamp(mean, MEAN_MIN, MEAN_MAX)
+        if self.std is None:
+            log_std = self.last_fc_log_std(h)
+            log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
+            std = torch.exp(log_std)
+        else:
+            std = self.std
+            log_std = self.log_std
+
+        tanh_normal = TanhNormal(mean, std)
+        log_prob = tanh_normal.log_prob(value=actions, pre_tanh_value=raw_actions)
+        return log_prob.sum(-1)
 
     def forward(
             self,
