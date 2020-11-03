@@ -124,6 +124,87 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
         )
 
 
+class ConditionalCouplingPolicy(nn.Module, ExplorationPolicy):
+    """
+    Usage:
+
+    ```
+    policy = ConditionalCouplingPolicy(...)
+    action, _= policy(obs)
+    # NOT IMPLEMENTED: action, _ = policy(obs, deterministic=True) (not sure if we can bring this back)
+    action, log_prob = policy(obs, return_log_prob=True) # this will actually be a no-op
+    ```
+
+    # NOT IMPLEMENTED: If deterministic is True, action = tanh(mean).
+    # Return_log_prob is a no-op but we keep it for compatibility for now
+    """
+    def __init__(
+            self,
+            coupling_hidden_sizes,
+            num_couplings,
+            obs_dim,
+            action_dim,
+            **kwargs
+    ):
+        super().__init__()
+        # todo: set up affine coupling net
+
+    def get_action(self, obs_np, deterministic=False):
+        actions = self.get_actions(obs_np[None], deterministic=deterministic)
+        return actions[0, :], {}
+
+    def get_actions(self, obs_np, deterministic=False):
+        # TODO: change this to affine coupling
+        # return eval_np(self, obs_np, deterministic=deterministic)[0]
+        pass
+
+    def sample(
+            self,
+            obs,
+            deterministic=False,
+            return_log_prob=False,  # no-op
+    ):
+        """
+        :param obs: Observation
+        :param deterministic: If True, do not sample
+        :param return_log_prob: If True, return a sample and its log probability
+        """
+        if deterministic:
+            raise NotImplementedError()
+        # TODO: sample affine coupling, get log prob, return
+        pass
+
+    def __call__(
+            self,
+            obs,
+            deterministic=False,
+            return_log_prob=False  # no-op
+    ):
+        return self.sample(
+                obs,
+                deterministic=deterministic,
+                return_log_prob=return_log_prob)
+
+    def forward(
+            self,
+            obs,
+            action,
+    ):
+        """
+        :param obs: Observation
+        :param action: Action
+        returns log prob only
+        """
+        # TODO: sample affine coupling, return log_prob
+        pass
+        '''
+        return (
+            action, mean, log_std, log_prob, entropy, std,
+            mean_action_log_prob, pre_tanh_value,
+        )
+        '''
+
+
 class MakeDeterministic(nn.Module, Policy):
     def __init__(self, stochastic_policy):
         super().__init__()
