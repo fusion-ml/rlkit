@@ -17,10 +17,11 @@ def load_data(args):
     hdata = h5py.File(args.data_path, 'r')
     obs = hdata['observations'][()]
     acts = hdata['actions'][()][:-1]
+    rews = hdata['rewards'][()][:-1].reshape(-1, 1)
     st = obs[:-1]
     st1 = obs[1:]
     x_dim = st.shape[1] + acts.shape[1]
-    y_dim = st.shape[1]
+    y_dim = st.shape[1] + 1
     x_means = torch.cat([
         torch.Tensor(np.mean(st, axis=0)),
         torch.zeros(acts.shape[1]),
@@ -30,7 +31,10 @@ def load_data(args):
         torch.ones(acts.shape[1]),
     ])
     x_data = torch.Tensor(np.hstack([st, acts]))
-    y_data = torch.Tensor(st1 - st)
+    y_data = torch.cat([
+        torch.Tensor(rews),
+        torch.Tensor(st1 - st),
+    ], dim=1)
     standardizers = [(x_means, x_stds),
             (torch.mean(y_data, dim=0), torch.std(y_data, dim=0))]
     return x_dim, y_dim, x_data, y_data, standardizers
