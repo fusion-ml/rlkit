@@ -87,7 +87,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--save_path')
     parser.add_argument('--data_path')
-    parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--od_wait', type=int, default=50)
     parser.add_argument('--encoder_hidden', default='400,400,400,400')
     parser.add_argument('--mean_hidden', default='')
