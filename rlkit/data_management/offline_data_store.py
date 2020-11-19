@@ -53,11 +53,12 @@ class OfflineDataStore(object):
         batch = dict(
             observations=self._observations[indices],
             actions=self._actions[indices],
-            rewards=self._rewards[indices],
-            terminals=self._terminals[indices],
+            rewards=self._rewards[indices].reshape(-1, 1),
+            terminals=self._terminals[indices].reshape(-1, 1),
             next_observations=self._next_obs[indices],
         )
         if self._give_next_terminals:
-            batch['next_terminals'] = self._next_terminals[indices]
+            batch['next_terminals'] =\
+                    self._next_terminals[indices].reshape(-1, 1)
         return batch
 
