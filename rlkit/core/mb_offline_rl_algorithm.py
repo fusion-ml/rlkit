@@ -18,8 +18,15 @@ from rlkit.samplers.data_collector import DataCollector
 class EnvModel(Env, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def set_new_start(self, state):
-        pass
+    def unroll(self, start_states, policy, horizon, replay_buffer):
+        """Unroll for multiple trajectories at once.
+        Args:
+            start_states: The start states to unroll at as ndarray
+                w shape (num_starts, obs_dim).
+            policy: Policy to take actions.
+            horizon: How long to rollout for.
+            replay_buffer: Replay buffer to add to.
+        """
 
     @abc.abstractmethod
     def get_diagnostics(self):
@@ -37,7 +44,6 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
             trainer,
             model_env: EnvModel,
             evaluation_env,
-            model_data_collector: DataCollector,
             evaluation_data_collector: DataCollector,
             offline_data: OfflineDataStore,
             model_replay_buffer: ReplayBuffer,
@@ -54,7 +60,6 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
         self.trainer = trainer
         self.model_env = model_env
         self.eval_env = evaluation_env
-        self.model_data_collector = model_data_collector
         self.eval_data_collector = evaluation_data_collector
         self.offline_data = offline_data
         self.model_replay_buffer = model_replay_buffer
@@ -78,6 +83,15 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
 
     def _train(self):
         """Training of the policy implemented by child class."""
+        starts = self.offline_data(
+                self.min_model_rollouts_before_training
+        )['observations']
+        self.model_env.unroll(
+                starts,
+                self.trainer.policy,
+                self.model_max_path_length,
+                self.model_replay_buffer
+        )
         for _ in range(self.min_model_rollouts_before_training):
             start = self.offline_data.get_batch(1)['observations']
             self.model_env.set_new_start(start.flatten())
@@ -99,16 +113,16 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
             gt.stamp('evaluation sampling')
 
             gt.stamp('model rollout', unique=False)
-            for _ in range(self.num_model_rollouts_per_epoch):
-                start = self.offline_data.get_batch(1)['observations']
-                self.model_env.set_new_start(start.flatten())
-                path = self.model_data_collector.collect_new_paths(
+            starts = self.offline_data(
+                    self.num_model_rollouts_per_epoch
+            )['observations']
+            self.model_env.unroll(
+                    starts,
+                    self.trainer.policy,
                     self.model_max_path_length,
-                    self.model_max_path_length,
-                    discard_incomplete_paths=False,
-                )
-                self.model_replay_buffer.add_paths(path)
-
+                    self.model_replay_buffer
+            )
+            # Train over samples.
             self.training_mode(True)
             gt.stamp('training', unique=False)
             for _ in range(self.num_train_loops_per_epoch):
