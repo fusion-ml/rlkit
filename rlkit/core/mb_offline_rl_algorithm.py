@@ -83,7 +83,7 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
 
     def _train(self):
         """Training of the policy implemented by child class."""
-        starts = self.offline_data(
+        starts = self.offline_data.get_batch(
                 self.min_model_rollouts_before_training
         )['observations']
         self.model_env.unroll(
@@ -92,15 +92,6 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
                 self.model_max_path_length,
                 self.model_replay_buffer
         )
-        for _ in range(self.min_model_rollouts_before_training):
-            start = self.offline_data.get_batch(1)['observations']
-            self.model_env.set_new_start(start.flatten())
-            path = self.model_data_collector.collect_new_paths(
-                self.model_max_path_length,
-                self.model_max_path_length,
-                discard_incomplete_paths=False,
-            )
-            self.model_replay_buffer.add_paths(path)
         for epoch in gt.timed_for(
                 range(self._start_epoch, self.num_epochs),
                 save_itrs=True,
@@ -113,7 +104,7 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
             gt.stamp('evaluation sampling')
 
             gt.stamp('model rollout', unique=False)
-            starts = self.offline_data(
+            starts = self.offline_data.get_batch(
                     self.num_model_rollouts_per_epoch
             )['observations']
             self.model_env.unroll(
