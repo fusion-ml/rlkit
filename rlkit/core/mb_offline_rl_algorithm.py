@@ -18,7 +18,8 @@ from rlkit.samplers.data_collector import DataCollector
 class EnvModel(Env, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
-    def unroll(self, start_states, policy, horizon, replay_buffer):
+    def unroll(self, start_states, policy, horizon,
+               replay_buffer=None, actions=None):
         """Unroll for multiple trajectories at once.
         Args:
             start_states: The start states to unroll at as ndarray
@@ -26,6 +27,7 @@ class EnvModel(Env, metaclass=abc.ABCMeta):
             policy: Policy to take actions.
             horizon: How long to rollout for.
             replay_buffer: Replay buffer to add to.
+            actions: The actions to use to unroll.
         """
 
     @abc.abstractmethod
@@ -56,6 +58,8 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
             model_max_path_length,
             eval_max_path_length,
             min_model_rollouts_before_training,
+            percent_from_starts,
+            start_states=None,
     ):
         self.trainer = trainer
         self.model_env = model_env
@@ -73,6 +77,8 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
         self.eval_max_path_length = eval_max_path_length
         self.min_model_rollouts_before_training =\
                 min_model_rollouts_before_training
+        self.percent_from_starts = percent_from_starts
+        self.start_states = start_states
         self._start_epoch = 0
 
         self.post_epoch_funcs = []
@@ -83,9 +89,7 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
 
     def _train(self):
         """Training of the policy implemented by child class."""
-        starts = self.offline_data.get_batch(
-                self.min_model_rollouts_before_training
-        )['observations']
+        starts = self._get_model_starts(self.min_model_rollouts_before_training)
         self.model_env.unroll(
                 starts,
                 self.trainer.policy,
@@ -104,9 +108,7 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
             gt.stamp('evaluation sampling')
 
             gt.stamp('model rollout', unique=False)
-            starts = self.offline_data.get_batch(
-                    self.num_model_rollouts_per_epoch
-            )['observations']
+            starts = self._get_model_starts(self.num_model_rollouts_per_epoch)
             self.model_env.unroll(
                     starts,
                     self.trainer.policy,
@@ -129,6 +131,15 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
 
             self._end_epoch(epoch)
 
+    def _get_model_starts(self, num_starts):
+        from_starts = int(self.percent_from_starts * num_starts)
+        if self.start_states is None or from_starts == 0:
+            return self.offline_data.get_batch(num_starts)['observations']
+        from_batch = num_starts - from_starts
+        start_starts = np.vstack([a.reshape(1, -1) for a in
+                 np.random.choice(self.start_states, size=from_starts)])
+        batch_starts = self.offline_data.get_batch(from_batch)['observations']
+        return np.vstack([start_starts, batch_start])
 
     def _end_epoch(self, epoch):
         snapshot = self._get_snapshot()
