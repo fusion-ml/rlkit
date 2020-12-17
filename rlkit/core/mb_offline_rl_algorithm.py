@@ -136,10 +136,10 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
         if self.start_states is None or from_starts == 0:
             return self.offline_data.get_batch(num_starts)['observations']
         from_batch = num_starts - from_starts
-        start_starts = np.vstack([a.reshape(1, -1) for a in
-                 np.random.choice(self.start_states, size=from_starts)])
+        startidxs = np.random.choice(len(self.start_states), size=from_starts)
+        start_starts = self.start_states[startidxs]
         batch_starts = self.offline_data.get_batch(from_batch)['observations']
-        return np.vstack([start_starts, batch_start])
+        return np.vstack([start_starts, batch_starts])
 
     def _end_epoch(self, epoch):
         snapshot = self._get_snapshot()
