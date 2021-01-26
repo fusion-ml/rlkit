@@ -59,6 +59,7 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
             eval_max_path_length,
             min_model_rollouts_before_training,
             percent_from_starts,
+            pre_model_training_epochs=0,
             start_states=None,
     ):
         self.trainer = trainer
@@ -78,6 +79,7 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
         self.min_model_rollouts_before_training =\
                 min_model_rollouts_before_training
         self.percent_from_starts = percent_from_starts
+        self.pre_model_training_epochs = pre_model_training_epochs
         self.start_states = start_states
         self._start_epoch = 0
 
@@ -89,6 +91,27 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
 
     def _train(self):
         """Training of the policy implemented by child class."""
+        # Train in the normal offline way without any models first.
+        for epoch in gt.timed_for(
+                range(self._start_epoch, self.pre_model_training_epochs),
+                save_itrs=True,
+        ):
+            self.eval_data_collector.collect_new_paths(
+                self.eval_max_path_length,
+                self.num_eval_steps_per_epoch,
+                discard_incomplete_paths=True,
+            )
+            gt.stamp('evaluation sampling')
+
+            self.training_mode(True)
+            gt.stamp('training', unique=False)
+            for _ in range(self.num_train_loops_per_epoch):
+                train_data = self.offline_data.get_batch(
+                        self.offline_batch_size + self.model_batch_size)
+                self.trainer.train(train_data)
+            self.training_mode(False)
+            self._end_epoch(epoch)
+        # Train with models.
         starts = self._get_model_starts(self.min_model_rollouts_before_training)
         self.model_env.unroll(
                 starts,
@@ -97,7 +120,7 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
                 self.model_replay_buffer
         )
         for epoch in gt.timed_for(
-                range(self._start_epoch, self.num_epochs),
+                range(self.pre_model_training_epochs, self.num_epochs),
                 save_itrs=True,
         ):
             self.eval_data_collector.collect_new_paths(
