@@ -139,6 +139,15 @@ class ConcatMlp(Mlp):
         return super().forward(flat_inputs, **kwargs)
 
 
+class FlattenMlp(Mlp):
+    """
+    Specialization of ConcatMlp, included for backwards compat.
+    """
+    def forward(self, *inputs, **kwargs):
+        flat_inputs = torch.cat(inputs, dim=1)
+        return super().forward(flat_inputs, **kwargs)
+
+
 class MlpPolicy(Mlp, Policy):
     """
     A simpler interface for creating policies.

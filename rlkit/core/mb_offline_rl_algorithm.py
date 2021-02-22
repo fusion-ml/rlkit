@@ -112,13 +112,15 @@ class MBOfflineRLAlgorithm(metaclass=abc.ABCMeta):
             self.training_mode(False)
             self._end_epoch(epoch)
         # Train with models.
-        starts = self._get_model_starts(self.min_model_rollouts_before_training)
-        self.model_env.unroll(
-                starts,
-                self.trainer.policy,
-                self.model_max_path_length,
-                self.model_replay_buffer
-        )
+        if self.min_model_rollouts_before_training > 0:
+            starts = self._get_model_starts(
+                    self.min_model_rollouts_before_training)
+            self.model_env.unroll(
+                    starts,
+                    self.trainer.policy,
+                    self.model_max_path_length,
+                    self.model_replay_buffer
+            )
         for epoch in gt.timed_for(
                 range(self.pre_model_training_epochs, self.num_epochs),
                 save_itrs=True,

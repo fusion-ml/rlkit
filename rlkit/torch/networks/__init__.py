@@ -13,7 +13,7 @@ from rlkit.torch.networks.image_state import ImageStatePolicy, ImageStateQ
 from rlkit.torch.networks.linear_transform import LinearTransform
 from rlkit.torch.networks.normalization import LayerNorm
 from rlkit.torch.networks.mlp import (
-    Mlp, ConcatMlp, MlpPolicy, TanhMlpPolicy,
+    Mlp, ConcatMlp, MlpPolicy, TanhMlpPolicy, FlattenMlp,
     MlpQf,
     MlpQfWithObsProcessor,
     ConcatMultiHeadedMlp,
@@ -21,9 +21,13 @@ from rlkit.torch.networks.mlp import (
 # from rlkit.torch.networks.pretrained_cnn import PretrainedCNN
 from rlkit.torch.networks.two_headed_mlp import TwoHeadMlp
 
+def identity(x):
+    return x
+
 __all__ = [
     'Clamp',
     'ConcatMlp',
+    'FlattenMlp',
     'ConcatMultiHeadedMlp',
     'ConcatTuple',
     'BasicCNN',
